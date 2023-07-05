@@ -1,0 +1,22 @@
+{
+  "name": "discord-bot-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ByJoako/Discord-Bot-template.git"
+  },
+  "author": "ByJoako",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ByJoako/Discord-Bot-template/issues"
+  },
+  "homepage": "https://github.com/ByJoako/Discord-Bot-template#readme",
+  "dependencies": {
+    "discord.js": "^14.11.0"
+  }
+}
