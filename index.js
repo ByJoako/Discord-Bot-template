@@ -1,35 +1,74 @@
-const { Client, Collection, GatewayIntentBits } = require(`discord.js`);
-const { readdirSync } = require(`fs`);
-const config = require(`./config.json`)
-const client = new Client({ 
-  allowedMentions: { parse: ["users", "roles"] },
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.MessageContent,
-  ]
-});
+require('dotenv').config();
+const { Client, Collection } = require('discord.js');
+const mongoose = require('mongoose');
 
-client.config = config
-client.slashCommands = new Collection();
+const { loadAddons } = require('./utils/loadAddons');
+const { botConfig } = require('./utils/config');
 
-const handlerFiles = readdirSync(`./handlers`).filter(file => file.endsWith(`.js`))
-for (const file of handlerFiles) {
-	require(`./handlers/${file}`)(client);
+// Crear instancia del cliente
+const client = new Client(botConfig);
+
+// Configurar propiedades del cliente
+setupClientProperties(client);
+
+// Cargar addons
+loadAddons(client);
+
+// Iniciar sesión
+loginToDiscord(client);
+
+// Manejar rechazos no manejados
+handleUnhandledRejections();
+
+// Conectar a MongoDB
+connectToMongoDB();
+
+// Funciones
+
+function setupClientProperties(client) {
+  client.info = function info(message) {
+    console.log(`\u001B[32m[${new Date().toLocaleTimeString()}] ${message}\u001B[0m`);
+  };
+
+  client.prefix = process.env.DEFAULT_PREFIX;
+  client.commands = new Collection();
+  client.slashcommands = new Collection();
+  client.buttons = new Collection();
+  client.selectMenus = new Collection();
+  client.contextCommands = new Collection();
+  client.modals = new Collection();
+  client.addonEvents = new Collection();
+  client.commandData = [];
 }
 
-client.login(config.token)
- 
-client.info = async function info(message) {
-  console.log(`\u001B[32m[${new Date().toLocaleTimeString()}] ${message}\u001B[0m`);
- }
- 
-client.error = async function error(message) {
-  console.log(`\u001B[31m[${new Date().toLocaleTimeString()}] ${message}\u001B[0m`);
- }
- 
-process.on('unhandledRejection', (reason, promise) => client.error(`Unhandled Rejection at: ${promise} \nReason: ${reason}`));
+function loginToDiscord(client) {
+  client.login(process.env.TOKEN)
+    .then(() => client.info(`The ${client.user.tag} bot loaded correctly.`))
+    .catch((err) => {
+      console.error('Error logging in with the provided token:', err);
+      process.exit(1);
+    });
+}
 
-process.on('uncaughtException', (error, origin) => client.error(`Caught exception: ${error}\n Exception origin: ${origin}`,));
+function handleUnhandledRejections() {
+  process.on('unhandledRejection', (error) => {
+    console.error('Unhandled error:', error);
+  });
+}
+
+function connectToMongoDB() {
+  mongoose.connect(process.env.MONGO_URI)
+    .then(() => client.info('Connected successfully to the database.'))
+    .catch((err) => {
+      console.error(`Error occurred while connecting to the database.\n${err.stack}`);
+      process.exit(1);
+    });
+
+  mongoose.connection.on('err', (err) => {
+    console.error(`Error occurred while connecting to the database.\n${err.stack}`);
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    client.info('Lost connection to the database');
+  });
+}
